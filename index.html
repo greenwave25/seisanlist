@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>精算リスト</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#000;--fg:#f2f2f2;--sub:#9a9a9a;--line:#2a2a2a;--row:#1c2a3a;--done:#0c0c0c;--acc:#f5c542;--ok:#3ecf8e;--ng:#ff6b6b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Sans",sans-serif}
+body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+header{padding:12px 16px;font-size:18px;font-weight:700;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+header small{font-size:13px;font-weight:400;color:var(--sub)}
+#list{flex:1;overflow-y:auto;padding:10px 12px 90px}
+.empty{text-align:center;color:var(--sub);margin-top:30vh}
+.row{border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--row);border-left:5px solid var(--ng)}
+.row.done{background:var(--done);border-left-color:var(--ok);color:#999}
+.top{display:flex;justify-content:space-between;font-size:13px;color:var(--sub)}
+.name{font-size:17px;font-weight:600;margin:4px 0 2px}
+.item{font-size:14px;margin-bottom:6px}
+.mid{display:flex;justify-content:space-between;align-items:center}
+.amt{font-size:20px;font-weight:700}
+.tag{font-size:12px;border:1px solid var(--sub);border-radius:20px;padding:1px 8px;margin-left:6px}
+.btns{display:flex;gap:8px;margin-top:8px}
+.btns button{flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--sub);font-size:14px;touch-action:manipulation}
+.btns .on.n{background:var(--ng);color:#000;border-color:var(--ng);font-weight:700}
+.btns .on.d{background:var(--ok);color:#000;border-color:var(--ok);font-weight:700}
+nav{position:fixed;left:0;right:0;bottom:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;background:linear-gradient(transparent,#000 40%)}
+.fab{background:var(--acc);color:#000;border:0;border-radius:30px;padding:12px 28px;font-size:16px;font-weight:700}
+#edit{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#edit.show{display:flex}
+.bar{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.bar button{flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--line);background:#161616;color:var(--fg);font-size:14px}
+.bar .ok{background:var(--acc);color:#000;font-weight:700;border-color:var(--acc)}
+.bar .del{color:var(--ng)}
+form,.form{flex:1;overflow-y:auto;padding:12px 16px 40px}
+label.f{display:block;font-size:13px;color:var(--sub);margin:14px 0 5px}
+input[type=text],input[type=number],input[type=date]{width:100%;padding:11px;font-size:16px;background:#141414;color:var(--fg);border:1px solid var(--line);border-radius:8px;-webkit-user-select:text;user-select:text}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg label{padding:9px 14px;border:1px solid var(--line);border-radius:20px;font-size:15px;background:#141414}
+.seg input{display:none}
+.seg input:checked+span{color:var(--acc);font-weight:700}
+.seg label:has(input:checked){border-color:var(--acc)}
+.part{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:15px}
+.part input{width:20px;height:20px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+nav{gap:12px;align-items:center}
+.gear{background:#1c1c1c;color:var(--fg);border:1px solid var(--line);border-radius:30px;padding:12px 18px;font-size:15px}
+.band{border-radius:12px;padding:8px 8px 1px;margin-bottom:14px}
+.b1{background:#c4b25a}.b0{background:#b0b0b0}
+.bh{color:#111;font-weight:700;font-size:14px;padding:2px 4px 8px}
+#set{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#set.show{display:flex}
+.sbtn{width:100%;padding:13px;margin-top:10px;border-radius:8px;border:1px solid var(--line);background:#161616;color:var(--fg);font-size:15px}
+.hint{font-size:12px;color:var(--sub);margin-top:6px}
+#load{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9}
+#load.show{display:flex}
+.pg{width:60%;height:6px;background:#333;border-radius:3px;overflow:hidden}
+.pg i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.row{position:relative}
+.stamp{position:absolute;right:14px;top:30px;width:54px;height:54px;border:3px double #e0443e;border-radius:50%;color:#e0443e;font-size:30px;font-weight:700;line-height:48px;text-align:center;transform:rotate(-14deg);opacity:.9;pointer-events:none}
+.row.done .name,.row.done .item{padding-right:66px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two>div{min-width:0}
+label.f{margin:8px 0 3px}
+input[type=text],input[type=number],input[type=date]{padding:8px 10px;height:40px;min-width:0;-webkit-appearance:none;appearance:none}
+.seg{flex-wrap:nowrap;gap:6px}
+.seg label{flex:1;text-align:center;padding:8px 2px;font-size:14px;white-space:nowrap}
+.part{margin-top:8px}
+.form{padding:4px 16px 16px}
+header{padding:8px 16px;font-size:17px}
+#list{padding:8px 10px 84px}
+.band{padding:6px 6px 1px;margin-bottom:10px}
+.bh{padding:0 4px 5px;font-size:14px}
+.bd{display:inline-block;margin-left:8px;padding:0 6px;border:1.5px solid;border-radius:3px;font-size:12px;line-height:18px;vertical-align:1px}
+.bd.n{color:#9b1c1c}.bd.d{color:#14532d}
+.row{padding:6px 10px;margin-bottom:6px;border-radius:8px}
+.top{font-size:12px}
+.name{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;margin:1px 0 0}
+.nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt{font-size:17px;font-weight:700;margin-left:8px;white-space:nowrap}
+.item{font-size:13px;margin-bottom:0}
+.btns{margin-top:5px;gap:6px}
+.btns button{padding:6px 0;font-size:13px}
+.row.done .name,.row.done .item{padding-right:0}
+.row.done .nm{margin-right:64px}
+.stamp{right:96px;top:14px;width:42px;height:42px;font-size:23px;line-height:36px}
+.bh{cursor:pointer}
+.band.c{padding-bottom:6px}.band.c .bh{padding-bottom:0}
+#dlg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:20}
+#dlg.show{display:flex}
+.dbox{background:#1c1c1c;border:1px solid var(--line);border-radius:12px;padding:18px;width:80%;max-width:320px}
+#dm{margin-bottom:14px;font-size:15px}
+.dbtn{display:flex;gap:8px}
+.dbtn button{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:#161616;color:var(--fg);font-size:15px}
+#dy{background:var(--acc);color:#000;font-weight:700}
+nav{position:static;flex:none;height:78px;padding:0;gap:36px;border-top:1px solid var(--line);background:#000}
+.sp{min-width:64px}
+#list{padding:8px 10px 10px}
+.ib{min-width:64px;height:60px;border-radius:14px;border:none;background:none;color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 6px;font-family:inherit}
+.ib:not(.big)::after{content:attr(aria-label);font-size:11px}
+.ib:active{background:#222}
+.ib svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ib.big svg{width:46px;height:46px}
+.row{border-left:none}
+.tag{font-size:13px;font-weight:700;color:var(--acc);border:1.5px solid var(--acc);padding:0 8px}
+.btns button{padding:7px 0;font-size:14px;font-weight:600;color:#d0d0d0;background:linear-gradient(#444449,#2a2a2e);border:1px solid #5a5a60;box-shadow:0 2px 0 #000,inset 0 1px 0 rgba(255,255,255,.15)}
+.btns button:active{transform:translateY(1px);box-shadow:0 1px 0 #000}
+.btns .on.n{color:#fff;background:linear-gradient(#f06a6e,#d63a3f);border-color:#ff9a9d}
+.btns .on.d{color:#fff;background:linear-gradient(#4fcf94,#238f5f);border-color:#8fe6bb}
+.shead{padding:10px;font-size:16px;color:var(--sub);text-align:center}
+.sbtn{text-align:left}.sbtn small{display:block;color:var(--sub);font-size:12px;margin-top:4px}
+#sync{flex:1;margin-left:10px;font-size:12px;font-weight:400;color:var(--sub);cursor:pointer}
+#toast{z-index:30}
+.bh{display:flex;align-items:center}
+.gs{margin-left:auto;padding:1px 9px;font-size:12px;font-weight:700;color:#111;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.45);border-radius:12px;font-family:inherit}
+.gs:active{background:rgba(0,0,0,.3)}
+.gt{margin-left:6px;padding:1px 10px;font-size:14px;line-height:18px;font-weight:700;color:#111;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.45);border-radius:12px;font-family:inherit}
+.gt:active{background:rgba(0,0,0,.3)}
+#sum{font-size:15px;color:#fff}
+.row.done .tag{color:#a39239;border-color:#a39239}
+.row .top>span:last-child{font-size:14px;font-weight:600}
+.nm{font-size:17px}
+.gu{margin-left:8px;font-weight:700;font-size:14px;color:#111}
+.bh{white-space:nowrap}
+#edit{padding-bottom:env(safe-area-inset-bottom,0px)}
+#edit .bar{order:2;border-top:1px solid var(--line);border-bottom:none}
+#edit .form{order:1}
+#set{padding-bottom:env(safe-area-inset-bottom,0px)}
+#set .form{order:1}
+#set .bar{order:2;border-top:1px solid var(--line);border-bottom:none}
+.tag{font-size:14px}
+.stamp{right:24px;top:calc(50% - 18px);width:88px;height:88px;border-width:5px;font-size:52px;line-height:78px;transform:translateY(-50%) rotate(-14deg);opacity:.38;z-index:-1}
+.row{isolation:isolate;overflow:hidden}
+.row.done .top>span:last-child,.row.done .amt{text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 2px #000}
+.row.done .nm{margin-right:0}
+.sg{display:flex;gap:6px}
+.sg input{flex:1;min-width:0}
+.sgb{flex:none;padding:0 12px;height:40px;border-radius:8px;border:1px solid #5a5a60;background:linear-gradient(#444449,#2a2a2e);color:#d0d0d0;font-size:14px;font-weight:600;box-shadow:0 2px 0 #000}
+.sgb:active{transform:translateY(1px);box-shadow:0 1px 0 #000}
+.sgi{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #333;color:var(--fg);font-family:inherit}
+.row .top>span:first-child{font-size:14px}
+.item{line-height:18px;min-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg{position:relative}
+.sgl{display:none;position:absolute;left:0;right:0;top:100%;z-index:6;background:#1f1f22;border:1px solid #444;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.6);overflow:hidden}
+.sgi{padding:10px 12px;font-size:16px;border-bottom:1px solid #333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sgi:last-child{border:none}
+.row .top>span:last-child{color:var(--fg)}
+.row.done .top>span:last-child{color:#999}
+</style></head><body>
+<header><span>精算リスト</span><small id="sync"></small><small id="sum"></small></header>
+<div id="list"></div>
+<nav><span class="sp"></span><button class="ib big" id="add" aria-label="新規登録"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10"/></svg></button><button class="ib" id="gear" aria-label="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10.23 4.61 L10.67 2.09 L13.33 2.09 L13.77 4.61 L15.97 5.52 L18.07 4.05 L19.95 5.93 L18.48 8.03 L19.39 10.23 L21.91 10.67 L21.91 13.33 L19.39 13.77 L18.48 15.97 L19.95 18.07 L18.07 19.95 L15.97 18.48 L13.77 19.39 L13.33 21.91 L10.67 21.91 L10.23 19.39 L8.03 18.48 L5.93 19.95 L4.05 18.07 L5.52 15.97 L4.61 13.77 L2.09 13.33 L2.09 10.67 L4.61 10.23 L5.52 8.03 L4.05 5.93 L5.93 4.05 L8.03 5.52Z"/></svg></button></nav>
+<div id="edit">
+  <div class="bar"><button id="back">戻る</button><button class="del" id="del">削除</button><button class="ok" id="save">確定</button></div>
+  <div class="form">
+    <label class="f">支払日</label><input type="date" id="date">
+    <label class="f">店舗名</label><div class="sg"><input type="text" id="shop" autocomplete="off"></div>
+    <label class="f">商品名</label><div class="sg"><input type="text" id="item" autocomplete="off"></div><label class="f">金額（円）</label><input type="number" id="amt" inputmode="numeric">
+    
+    <label class="f">支払方法</label><div class="seg" id="pay"></div>
+    <div class="part"><input type="checkbox" id="part"><label for="part">一部支払</label></div>
+    <label class="f">精算区分</label><div class="seg" id="st"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="set"><div class="bar"><button id="sback">戻る</button></div><div class="shead">設定</div><div class="form">
+<label class="f">Googleアカウント（ドライブ連携用のメールアドレス）</label><input type="email" id="acct" placeholder="例: example@gmail.com" autocomplete="off" autocapitalize="off">
+<div class="hint">設定すると、アプリを開いた時に自動でドライブへの接続を試みます。自動で接続できない時は、最初の画面タップで再試行します。それでも接続できない時は、画面上部の表示をタップしてください。</div>
+<label class="f">締日（日のみ。空欄で色分けなし）</label><input type="number" id="cl" inputmode="numeric" min="1" max="31" placeholder="例: 15">
+<div class="hint">締日の翌日から次の締日までを1つの期間とし、開始月を「○月支払分」と表示します。</div>
+<button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
+<button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
+<label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
+<input type="file" id="file" accept=".json,.dat,.txt,application/json,text/plain" hidden>
+</div></div>
+<div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
+<div id="load"><div id="lt">データを読み込み中…</div><div class="pg"><i id="pgi"></i></div></div>
+<script>
+const PAYS=["d払い","ID","dカード","現金","その他"],KEY="seisan:v1";
+let data=[],cur=null,dirty=false;
+let closing=0,savedAt=0;
+try{const s0=JSON.parse(localStorage.getItem("seisan:v2")||"null");
+ if(s0){data=s0.items||[];closing=s0.closing||0;savedAt=s0.savedAt||0}else data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}
+const $=id=>document.getElementById(id);
+const localSave=()=>{try{localStorage.setItem("seisan:v2",JSON.stringify({v:1,savedAt,closing,items:data}))}catch(e){}};
+const save=()=>{savedAt=Date.now();localSave();sched()};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),1400)}
+function render(){
+  const kk=x=>{const p=per(x.date);return p?p.k:0};const sgn=x=>gs[kk(x)]==="d"?-1:1;const L=[...data].sort((a,b)=>(kk(b)-kk(a))||sgn(a)*(a.date.localeCompare(b.date)||a.id-b.id));
+  const un=data.filter(x=>!x.done).reduce((s,x)=>s+x.amt,0);
+  $("sum").textContent=data.length?"未精算合計 "+un.toLocaleString()+"円":"";
+  $("list").innerHTML=L.length?bandHtml(L,x=>`<div class="row ${x.done?"done":""}" data-id="${x.id}">${x.done?'<div class="stamp">済</div>':""}
+    <div class="top"><span>${esc(x.date.replace(/-/g,"/"))}(${"日月火水木金土"[new Date(x.date+"T00:00:00").getDay()]})</span><span>${esc(x.pay)}${x.part?'<span class="tag">一部支払</span>':""}</span></div>
+    <div class="name"><span class="nm">${esc(x.shop||"（店舗名なし）")}</span><span class="amt">${x.amt.toLocaleString()}円</span></div><div class="item">${esc(x.item)}</div>
+    
+    <div class="btns"><button class="n ${x.done?"":"on"}" data-s="0">未精算</button><button class="d ${x.done?"on":""}" data-s="1">精算済み</button></div>
+  </div>`):'<div class="empty">登録がありません<br>「新規登録」から追加できます</div>';
+}
+function radios(el,name,opts,val){el.innerHTML=opts.map(([v,t])=>`<label><input type="radio" name="${name}" value="${v}" ${v==val?"checked":""}><span>${t}</span></label>`).join("");
+  el.onchange=()=>dirty=true}
+function open_(x){
+  cur=x?x.id:null;dirty=false;document.querySelectorAll(".sgl").forEach(b=>{b.style.display="none"});
+  $("date").value=x?x.date:today();$("shop").value=x?x.shop:"";$("item").value=x?x.item:"";
+  $("amt").value=x?x.amt:"";$("part").checked=!!(x&&x.part);
+  radios($("pay"),"pay",PAYS.map(p=>[p,p]),x?x.pay:"d払い");
+  radios($("st"),"st",[["0","未精算"],["1","精算済み"]],x&&x.done?"1":"0");
+  $("del").style.display=x?"":"none";$("edit").classList.add("show");
+}
+document.querySelectorAll("#date,#shop,#item,#amt,#part").forEach(e=>e.addEventListener("input",()=>dirty=true));
+$("add").onclick=()=>open_(null);
+$("back").onclick=async()=>{if(dirty&&!await ask("編集内容を破棄して戻りますか？"))return;$("edit").classList.remove("show")};
+$("del").onclick=async()=>{if(await ask("この精算を削除しますか？")){data=data.filter(x=>x.id!==cur);save();render();$("edit").classList.remove("show")}};
+$("save").onclick=()=>{
+  const amt=parseInt($("amt").value,10);
+  if(!$("date").value){toast("支払日を入力してください");return}
+  if(isNaN(amt)){toast("金額を入力してください");return}
+  const o={date:$("date").value,shop:$("shop").value.trim(),item:$("item").value.trim(),amt,
+    pay:document.querySelector('input[name=pay]:checked').value,part:$("part").checked,
+    done:document.querySelector('input[name=st]:checked').value==="1"};
+  if(cur){Object.assign(data.find(x=>x.id===cur),o)}else{data.push({id:Date.now(),...o})}
+  {const pp=per(o.date);if(pp&&!o.done)fold.delete(pp.k)}
+  save();render();$("edit").classList.remove("show");
+};
+// 長押しで精算区分を切り替え / 短いタップは編集画面
+let timer=null,fired=false,sx=0,sy=0;
+const list=$("list");
+list.addEventListener("pointerdown",e=>{
+  const b=e.target.closest(".btns button");if(!b)return;
+  fired=false;sx=e.clientX;sy=e.clientY;
+  const id=+b.closest(".row").dataset.id,s=b.dataset.s==="1";
+  timer=setTimeout(()=>{fired=true;const x=data.find(v=>v.id===id);
+    if(x.done!==s){x.done=s;save();if(navigator.vibrate)navigator.vibrate(30);render()}},600);
+});
+["pointerup","pointercancel"].forEach(t=>list.addEventListener(t,()=>clearTimeout(timer)));
+list.addEventListener("pointermove",e=>{if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>10)clearTimeout(timer)});
+list.addEventListener("contextmenu",e=>e.preventDefault());
+list.addEventListener("click",e=>{
+  const b=e.target.closest(".btns button");
+  if(b){if(!fired)toast("長押しで切り替わります");fired=false;return}
+  const r=e.target.closest(".row");if(r)open_(data.find(x=>x.id===+r.dataset.id));
+});
+function per(ds){
+  const C=closing;if(!C)return null;
+  const [y,m,d]=ds.split("-").map(Number),eff=(yy,mm)=>Math.min(C,new Date(yy,mm,0).getDate());
+  let cy=y,cm=m;if(d>eff(y,m)){cm++;if(cm>12){cm=1;cy++}}
+  let py=cy,pm=cm-1;if(pm<1){pm=12;py--}
+  const st=new Date(py,pm-1,eff(py,pm)+1),sm=st.getMonth()+1;
+  return {k:st.getFullYear()*12+sm,label:st.getFullYear()+"年"+sm+"月分"};
+}
+function bandHtml(L,f){
+  if(!closing)return L.map(f).join("");
+  let out="",cur=null,last="";
+  const flush=()=>{if(cur)out+=`<div class="band b${cur.k%2}${fold.has(cur.k)?" c":""}"><div class="bh" data-k="${cur.k}">${fold.has(cur.k)?"▸":"▾"} ${cur.label}${cur.u?'<span class="bd n">未精算</span><span class="gu">'+cur.s.toLocaleString()+'円</span>':'<span class="bd d">精算済</span><span class="gu">'+cur.t.toLocaleString()+'円</span>'}<button type="button" class="gs" data-k="${cur.k}">${gs[cur.k]==="d"?"▼降順":"▲昇順"}</button><button type="button" class="gt" data-k="${cur.k}">${fold.has(cur.k)?"▸":"▾"}</button></div>${fold.has(cur.k)?"":cur.h}</div>`};
+  for(const x of L){const p=per(x.date),key=""+p.k;
+    if(key!==last){flush();cur={k:p.k,label:p.label,h:"",u:0,s:0,t:0};last=key}
+    cur.h+=f(x);cur.t+=x.amt;if(!x.done){cur.u++;cur.s+=x.amt}}
+  flush();return out;
+}
+// 設定・インポート/エクスポート
+$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();$("set").classList.add("show");dstat()};
+$("sback").onclick=()=>$("set").classList.remove("show");
+$("cl").onchange=()=>{const v=parseInt($("cl").value,10);
+  if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
+  closing=isNaN(v)?0:v;initFold();save();render()};
+$("exp").onclick=()=>{
+  try{const b=new Blob([JSON.stringify({v:1,savedAt,closing,items:data})],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
+    a.href=u;a.download="精算リスト_"+today()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);toast("エクスポートしました")}
+  catch(e){toast("エクスポートに失敗しました")}};
+$("imp").onclick=()=>$("file").click();
+$("file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{const o=JSON.parse(await f.text());const items=Array.isArray(o)?o:o.items;
+    if(!Array.isArray(items))throw 0;
+    if(!await ask("現在のデータを完全に置き換えます。よろしいですか？"))return;
+    data=items.map((x,i)=>({id:x.id||Date.now()+i,date:String(x.date||today()),shop:x.shop||"",item:x.item||"",amt:+x.amt||0,pay:x.pay||"その他",part:!!x.part,done:!!x.done}));
+    if(!Array.isArray(o)&&o.closing!==undefined)closing=+o.closing||0;
+    initFold();save();render();$("cl").value=closing||"";toast("インポートしました")}
+  catch(err){toast("読み込めないファイルです")}};
+// Googleドライブ同期（マイドライブ / WebApp / seisanlist / 精算データ.dat）
+const CLIENT_ID="456676041228-c3u25urlk3a7ej8hi5u7omiihu9j292l.apps.googleusercontent.com";
+const SCOPE="https://www.googleapis.com/auth/drive.file";
+const DIRS=["WebApp","seisanlist"],FILE="精算データ.dat";
+const API="https://www.googleapis.com/drive/v3/files",UP="https://www.googleapis.com/upload/drive/v3/files";
+let acct="";try{acct=localStorage.getItem("seisan:acct")||""}catch(e){}
+let tc=null,cbk=null,ecb=null,tok=null,tokExp=0,fid=null,fileId=null,ens=null,driveOK=false,ds="同期なし",busy=false,again=false,tm=null,pulling=false;
+function dstat(t){if(t)ds=t;$("sync").textContent=ds}
+const PG=[8,35,60,90,100];
+function prog(n,t){const q=PG[n];$("pgi").style.width=q+"%";$("lt").textContent=t+" "+q+"%"}
+const hasTok=()=>tok&&Date.now()<tokExp-30000;
+function login(silent){return new Promise((res,rej)=>{
+  if(!(window.google&&google.accounts&&google.accounts.oauth2)){rej({code:"gis_unavailable"});return}
+  if(!tc)tc=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:r=>cbk&&cbk(r),error_callback:e=>ecb&&ecb(e)});
+  cbk=r=>{
+    if(!(r&&r.access_token)){rej({code:(r&&r.error)||"login_failed"});return}
+    if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE)){rej({code:"scope_denied"});return}
+    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;res()};
+  ecb=e=>rej({code:(e&&e.type)||"login_failed"});
+  const o={prompt:silent?"none":""};if(acct)o.hint=acct;tc.requestAccessToken(o)})}
+function derr(e){const c=e&&e.code;
+  return c==="need_login"?"再ログイン(タップ)":c==="gis_unavailable"?"Googleログインを読み込めません":
+  c==="scope_denied"?"ドライブへのアクセスが許可されていません(タップ)":
+  (c==="popup_closed"||c==="popup_failed_to_open"||c==="access_denied"||c==="login_failed")?"ログインできませんでした(タップで再試行)":
+  "同期失敗(タップで再試行)"}
+async function gf(url,opt){
+  if(!hasTok())throw {code:"need_login"};
+  const o=Object.assign({},opt);o.headers=Object.assign({Authorization:"Bearer "+tok},(opt&&opt.headers)||{});
+  const r=await fetch(url,o);
+  if(r.status===401){tok=null;throw {code:"need_login"}}
+  if(!r.ok)throw {code:"http_"+r.status};
+  return r}
+const qs=q=>API+"?spaces=drive&pageSize=10&fields="+encodeURIComponent("files(id,name,createdTime,modifiedTime)")+"&q="+encodeURIComponent(q);
+async function lst(q){const j=await (await gf(qs(q))).json();return j.files||[]}
+async function mkdir(name,parent){
+  const a=await lst("name = '"+name+"' and mimeType = 'application/vnd.google-apps.folder' and '"+parent+"' in parents and trashed = false");
+  if(a.length)return a.sort((x,y)=>String(x.createdTime).localeCompare(String(y.createdTime)))[0].id;
+  const r=await gf(API+"?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder",parents:[parent]})});
+  return (await r.json()).id}
+function ensure(){return ens||(ens=(async()=>{let p="root";for(const d of DIRS)p=await mkdir(d,p);fid=p;return p})().catch(e=>{ens=null;throw e}))}
+const findFiles=async()=>(await lst("name = '"+FILE+"' and '"+fid+"' in parents and trashed = false")).sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)));
+async function writeFile(text){
+  await ensure();
+  if(!fileId){const a=await findFiles();if(a[0])fileId=a[0].id}
+  if(fileId){
+    try{await gf(UP+"/"+fileId+"?uploadType=media",{method:"PATCH",headers:{"Content-Type":"text/plain; charset=UTF-8"},body:text});return}
+    catch(e){if(e&&e.code==="http_404"){fileId=null;return writeFile(text)}throw e}}
+  const b="seisan"+Date.now();
+  const body="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify({name:FILE,parents:[fid],mimeType:"text/plain"})+"\r\n--"+b+"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+text+"\r\n--"+b+"--";
+  const r=await gf(UP+"?uploadType=multipart&fields=id",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body});
+  fileId=(await r.json()).id}
+function parse(t){try{const o=JSON.parse(t);return o&&Array.isArray(o.items)?o:null}catch(e){return null}}
+function sched(){if(!driveOK)return;clearTimeout(tm);dstat("未同期");tm=setTimeout(push,1500)}
+async function push(){
+  if(!driveOK)return;if(busy){again=true;return}
+  busy=true;dstat("同期中…");
+  try{await writeFile(JSON.stringify({v:1,savedAt,closing,items:data}));dstat("同期済み")}
+  catch(e){dstat(derr(e));if(e&&e.code==="need_login")arm()}
+  busy=false;if(again){again=false;push()}}
+async function pull(){
+  if(pulling)return;pulling=true;dstat("同期中…");
+  $("load").classList.add("show");prog(0,"Googleドライブに接続中…");
+  const guard=setTimeout(()=>$("load").classList.remove("show"),30000);
+  try{
+    prog(1,"フォルダを確認中…");await ensure();
+    prog(2,"データファイルを検索中…");const fs=await findFiles();
+    let remote=null;
+    if(fs.length){prog(3,"データを読み込み中…");fileId=fs[0].id;
+      remote=parse(await (await gf(API+"/"+fileId+"?alt=media")).text());
+      if(!remote){dstat("ドライブのデータを読み取れません");return}}
+    prog(4,"完了");driveOK=true;let pushed=false;
+    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;localSave();initFold();render()}
+    else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)){if(!savedAt)savedAt=Date.now();localSave();await push();pushed=true}
+    if(!pushed)dstat("同期済み")}
+  catch(e){dstat(derr(e))}
+  finally{clearTimeout(guard);pulling=false;$("load").classList.remove("show")}}
+let armed=false;
+function arm(){if(armed||!acct)return;armed=true;document.addEventListener("click",()=>{armed=false;connect(true,true)},{once:true,capture:true})}
+async function fillAcct(){if(acct||!hasTok())return;
+  try{const j=await (await gf("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)")).json();
+    const m=j&&j.user&&j.user.emailAddress;if(m){acct=m;try{localStorage.setItem("seisan:acct",m)}catch(e){}}}catch(e){}}
+async function connect(silent,gest){
+  if(pulling||busy)return;
+  try{if(!hasTok())await login(silent);await pull();await fillAcct()}
+  catch(e){
+    if(silent){dstat(driveOK?"再ログイン(タップ)":"ドライブ未接続(タップでログイン)");if(!gest)arm()}
+    else dstat(derr(e))}}
+$("sync").onclick=()=>connect(false,false);
+$("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("seisan:acct",acct)}catch(e){}
+  tok=null;tokExp=0;driveOK=false;fid=null;fileId=null;ens=null;
+  dstat("ドライブ未接続(タップでログイン)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
+function startDrive(){dstat("ドライブ未接続(タップでログイン)");if(acct)connect(true,false)}
+let persistState="確認中…";
+async function reqPersist(){
+  try{
+    if(!(navigator.storage&&navigator.storage.persist)){persistState="このブラウザでは非対応です"}
+    else{
+      let p=navigator.storage.persisted?await navigator.storage.persisted():false;
+      if(!p)p=await navigator.storage.persist();
+      persistState=p?"有効（ブラウザが自動では消さない設定です）":"未許可（ホーム画面に追加して使うと許可されやすくなります）"}
+  }catch(e){persistState="確認できませんでした"}
+  const el=$("pst");if(el)el.textContent=persistState}
+function sug(id,key){
+  const inp=$(id),wrap=inp.parentNode,box=document.createElement("div"),btn=document.createElement("button");
+  btn.type="button";btn.className="sgb";btn.textContent="候補";box.className="sgl";
+  wrap.appendChild(btn);wrap.appendChild(box);
+  const close=()=>{box.style.display="none"};
+  btn.addEventListener("click",()=>{
+    if(box.style.display==="block"){close();return}
+    const seen=new Set(),L=[];
+    for(const x of [...data].sort((a,b)=>b.id-a.id)){const v=(x[key]||"").trim();if(v&&!seen.has(v)){seen.add(v);L.push(v);if(L.length>=5)break}}
+    if(!L.length){toast("候補がありません");return}
+    box.innerHTML=L.map(v=>'<button type="button" class="sgi">'+esc(v)+'</button>').join("");box.style.display="block"});
+  box.addEventListener("click",e=>{const t=e.target.closest(".sgi");if(!t)return;inp.value=t.textContent;dirty=true;close()});
+  inp.addEventListener("focus",close);
+  document.addEventListener("focusin",e=>{if(!wrap.contains(e.target))close()});
+  document.addEventListener("pointerdown",e=>{if(!wrap.contains(e.target))close()});
+}
+sug("shop","shop");sug("item","item");
+function ask(m){return new Promise(r=>{$("dm").textContent=m;$("dlg").classList.add("show");
+  const f=v=>{$("dlg").classList.remove("show");$("dy").onclick=null;$("dn").onclick=null;r(v)};
+  $("dy").onclick=()=>f(true);$("dn").onclick=()=>f(false)})}
+let gs={};try{gs=JSON.parse(localStorage.getItem("seisan:gs")||"{}")}catch(e){gs={}}
+let fold=new Set();
+function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=>{const k=per(x.date).k;u[k]=u[k]||!x.done});for(const k in u)if(!u[k])fold.add(+k)}
+initFold();
+list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
+render();
+startDrive();
+reqPersist();
+</script></body></html>
