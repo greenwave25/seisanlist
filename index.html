@@ -307,9 +307,9 @@ function login(silent){return new Promise((res,rej)=>{
   cbk=r=>{
     if(!(r&&r.access_token)){rej({code:(r&&r.error)||"login_failed"});return}
     if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE)){rej({code:"scope_denied"});return}
-    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;res()};
+    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;try{localStorage.setItem("seisan:gl","1")}catch(e){}res()};
   ecb=e=>rej({code:(e&&e.type)||"login_failed"});
-  const o={prompt:silent?"none":""};if(acct)o.hint=acct;tc.requestAccessToken(o)})}
+  const o={prompt:(silent&&acct)?"none":""};if(acct)o.hint=acct;tc.requestAccessToken(o)})}
 function derr(e){const c=e&&e.code;
   return c==="need_login"?"再ログイン(タップ)":c==="gis_unavailable"?"Googleログインを読み込めません":
   c==="scope_denied"?"ドライブへのアクセスが許可されていません(タップ)":
@@ -366,8 +366,9 @@ async function pull(){
     if(!pushed)dstat("同期済み")}
   catch(e){dstat(derr(e))}
   finally{clearTimeout(guard);pulling=false;$("load").classList.remove("show")}}
+const wasConn=()=>{try{return localStorage.getItem("seisan:gl")==="1"}catch(e){return false}};
 let armed=false;
-function arm(){if(armed||!acct)return;armed=true;document.addEventListener("click",()=>{armed=false;connect(true,true)},{once:true,capture:true})}
+function arm(){if(armed||!(acct||wasConn()))return;armed=true;document.addEventListener("click",()=>{armed=false;connect(true,true)},{once:true,capture:true})}
 async function fillAcct(){if(acct||!hasTok())return;
   try{const j=await (await gf("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)")).json();
     const m=j&&j.user&&j.user.emailAddress;if(m){acct=m;try{localStorage.setItem("seisan:acct",m)}catch(e){}}}catch(e){}}
@@ -381,7 +382,7 @@ $("sync").onclick=()=>connect(false,false);
 $("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("seisan:acct",acct)}catch(e){}
   tok=null;tokExp=0;driveOK=false;fid=null;fileId=null;ens=null;
   dstat("ドライブ未接続(タップでログイン)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
-function startDrive(){dstat("ドライブ未接続(タップでログイン)");if(acct)connect(true,false)}
+function startDrive(){dstat("ドライブ未接続(タップでログイン)");if(acct||wasConn())connect(true,false)}
 let persistState="確認中…";
 async function reqPersist(){
   try{
