@@ -174,6 +174,7 @@ nav{position:static;flex:none;height:78px;padding:0;gap:36px;border-top:1px soli
 <div class="hint">締日の翌日から次の締日までを1つの期間とし、開始月を「○月支払分」と表示します。</div>
 <button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
 <button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
+<label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
 <input type="file" id="file" accept=".json,.dat,.txt,application/json,text/plain" hidden>
 </div></div>
 <div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
@@ -262,7 +263,7 @@ function bandHtml(L,f){
   flush();return out;
 }
 // 設定・インポート/エクスポート
-$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("set").classList.add("show");dstat()};
+$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();$("set").classList.add("show");dstat()};
 $("sback").onclick=()=>$("set").classList.remove("show");
 $("cl").onchange=()=>{const v=parseInt($("cl").value,10);
   if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
@@ -372,6 +373,16 @@ $("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("se
   tok=null;tokExp=0;driveOK=false;fid=null;fileId=null;ens=null;
   dstat("ドライブ未接続(タップでログイン)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
 function startDrive(){dstat("ドライブ未接続(タップでログイン)");if(acct)connect(true,false)}
+let persistState="確認中…";
+async function reqPersist(){
+  try{
+    if(!(navigator.storage&&navigator.storage.persist)){persistState="このブラウザでは非対応です"}
+    else{
+      let p=navigator.storage.persisted?await navigator.storage.persisted():false;
+      if(!p)p=await navigator.storage.persist();
+      persistState=p?"有効（ブラウザが自動では消さない設定です）":"未許可（ホーム画面に追加して使うと許可されやすくなります）"}
+  }catch(e){persistState="確認できませんでした"}
+  const el=$("pst");if(el)el.textContent=persistState}
 function sug(id,key){
   const inp=$(id),wrap=inp.parentNode,box=document.createElement("div"),btn=document.createElement("button");
   btn.type="button";btn.className="sgb";btn.textContent="候補";box.className="sgl";
@@ -399,4 +410,5 @@ initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 render();
 startDrive();
+reqPersist();
 </script></body></html>
