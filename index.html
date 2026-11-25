@@ -117,6 +117,13 @@ nav{position:static;flex:none;height:78px;padding:0;gap:36px;border-top:1px soli
 .sbtn{text-align:left}.sbtn small{display:block;color:var(--sub);font-size:12px;margin-top:4px}
 #sync{flex:1;margin-left:10px;font-size:12px;font-weight:400;color:var(--sub);cursor:pointer}
 #toast{z-index:30}
+:root{padding-top:0;--hh:calc(40px + env(safe-area-inset-top,0px))}
+header{position:fixed;top:0;left:0;right:0;z-index:10;box-sizing:border-box;height:var(--hh);padding:env(safe-area-inset-top,0px) 16px 0;align-items:center;background:#000}
+body{padding-top:var(--hh)}
+#edit,#set{z-index:20}
+#dlg{z-index:35}
+#toast{z-index:36}
+#load{z-index:40}
 .bh{display:flex;align-items:center}
 .gs{margin-left:auto;padding:1px 9px;font-size:12px;font-weight:700;color:#111;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.45);border-radius:12px;font-family:inherit}
 .gs:active{background:rgba(0,0,0,.3)}
