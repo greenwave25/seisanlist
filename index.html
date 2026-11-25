@@ -4,6 +4,7 @@
 <title>精算リスト</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="mobile-web-app-capable" content="yes">
 <style>
 :root{--bg:#000;--fg:#f2f2f2;--sub:#9a9a9a;--line:#2a2a2a;--row:#1c2a3a;--done:#0c0c0c;--acc:#f5c542;--ok:#3ecf8e;--ng:#ff6b6b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -277,58 +278,84 @@ $("file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)r
     if(!Array.isArray(o)&&o.closing!==undefined)closing=+o.closing||0;
     initFold();save();render();$("cl").value=closing||"";toast("インポートしました")}
   catch(err){toast("読み込めないファイルです")}};
-// Googleドライブ同期（Claude / 精算リスト / データ.dat）
-const FILE="精算データ.dat",LEG="データ.dat",SRV="Google Drive";
-let mcp=null,fid=null,ens=null,driveOK=false,ds="確認中…",busy=false,again=false,tm=null,pulling=false;
+// Googleドライブ同期（マイドライブ / WebApp / seisanlist / 精算データ.dat）
+const CLIENT_ID="456676041228-c3u25urlk3a7ej8hi5u7omiihu9j292l.apps.googleusercontent.com";
+const SCOPE="https://www.googleapis.com/auth/drive.file";
+const DIRS=["WebApp","seisanlist"],FILE="精算データ.dat";
+const API="https://www.googleapis.com/drive/v3/files",UP="https://www.googleapis.com/upload/drive/v3/files";
+let tc=null,cbk=null,ecb=null,tok=null,tokExp=0,fid=null,fileId=null,ens=null,driveOK=false,ds="同期なし",busy=false,again=false,tm=null,pulling=false;
 function dstat(t){if(t)ds=t;$("sync").textContent=ds}
 const PG=[8,35,60,90,100];
 function prog(n,t){const q=PG[n];$("pgi").style.width=q+"%";$("lt").textContent=t+" "+q+"%"}
-const b64e=s=>{const u=new TextEncoder().encode(s);let b="";for(let i=0;i<u.length;i+=8192)b+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(b)};
-const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
-const call=async(tool,input)=>(await mcp.callTool(SRV,tool,input,{cache:false})).payload;
-const files=p=>(p&&p.files)||[];
+const hasTok=()=>tok&&Date.now()<tokExp-30000;
+function login(){return new Promise((res,rej)=>{
+  if(!(window.google&&google.accounts&&google.accounts.oauth2)){rej({code:"gis_unavailable"});return}
+  if(!tc)tc=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:r=>cbk&&cbk(r),error_callback:e=>ecb&&ecb(e)});
+  cbk=r=>{
+    if(!(r&&r.access_token)){rej({code:(r&&r.error)||"login_failed"});return}
+    if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE)){rej({code:"scope_denied"});return}
+    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;res()};
+  ecb=e=>rej({code:(e&&e.type)||"login_failed"});
+  tc.requestAccessToken({prompt:""})})}
 function derr(e){const c=e&&e.code;
-  return c==="needs_reauth"||c==="server_not_connected"||c==="selection_required"?"ドライブ未接続(タップ)":(c==="approval_required"||c==="not_in_manifest"||c==="consent_required"||c==="not_granted")?"承認が必要(タップ)":"同期失敗(タップで再試行)"}
-async function find(title,parent,isFolder){
-  const q="title = '"+title+"'"+(parent?" and parentId = '"+parent+"'":"")+(isFolder?" and mimeType = 'application/vnd.google-apps.folder'":"")+" and trashed = false";
-  return files(await call("search_files",{query:q,excludeContentSnippets:true,pageSize:10,orderBy:"modifiedTime desc"})).filter(f=>f.title===title)}
-async function mk(title,parent){
-  const a=await find(title,parent,true);if(a.length)return a.slice().sort((x,y)=>String(x.createdTime).localeCompare(String(y.createdTime)))[0].id;
-  const i={title,contentMimeType:"application/vnd.google-apps.folder"};if(parent)i.parentId=parent;
-  return (await call("create_file",i)).id}
-function ensure(){return ens||(ens=(async()=>{const c=await mk("Claude",null);fid=await mk("精算リスト",c);return fid})().catch(e=>{ens=null;throw e}))}
-function parse(t){if(!t)return null;t=String(t).trim();
-  for(const g of [()=>b64d(t),()=>t.replace(/\\([\[\]])/g,"$1")]){try{const o=JSON.parse(g());if(o&&Array.isArray(o.items))return o}catch(e){}}return null}
+  return c==="need_login"?"再ログイン(タップ)":c==="gis_unavailable"?"Googleログインを読み込めません":
+  c==="scope_denied"?"ドライブへのアクセスが許可されていません(タップ)":
+  (c==="popup_closed"||c==="popup_failed_to_open"||c==="access_denied"||c==="login_failed")?"ログインできませんでした(タップで再試行)":
+  "同期失敗(タップで再試行)"}
+async function gf(url,opt){
+  if(!hasTok())throw {code:"need_login"};
+  const o=Object.assign({},opt);o.headers=Object.assign({Authorization:"Bearer "+tok},(opt&&opt.headers)||{});
+  const r=await fetch(url,o);
+  if(r.status===401){tok=null;throw {code:"need_login"}}
+  if(!r.ok)throw {code:"http_"+r.status};
+  return r}
+const qs=q=>API+"?spaces=drive&pageSize=10&fields="+encodeURIComponent("files(id,name,createdTime,modifiedTime)")+"&q="+encodeURIComponent(q);
+async function lst(q){const j=await (await gf(qs(q))).json();return j.files||[]}
+async function mkdir(name,parent){
+  const a=await lst("name = '"+name+"' and mimeType = 'application/vnd.google-apps.folder' and '"+parent+"' in parents and trashed = false");
+  if(a.length)return a.sort((x,y)=>String(x.createdTime).localeCompare(String(y.createdTime)))[0].id;
+  const r=await gf(API+"?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder",parents:[parent]})});
+  return (await r.json()).id}
+function ensure(){return ens||(ens=(async()=>{let p="root";for(const d of DIRS)p=await mkdir(d,p);fid=p;return p})().catch(e=>{ens=null;throw e}))}
+const findFiles=async()=>(await lst("name = '"+FILE+"' and '"+fid+"' in parents and trashed = false")).sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)));
+async function writeFile(text){
+  await ensure();
+  if(!fileId){const a=await findFiles();if(a[0])fileId=a[0].id}
+  if(fileId){
+    try{await gf(UP+"/"+fileId+"?uploadType=media",{method:"PATCH",headers:{"Content-Type":"text/plain; charset=UTF-8"},body:text});return}
+    catch(e){if(e&&e.code==="http_404"){fileId=null;return writeFile(text)}throw e}}
+  const b="seisan"+Date.now();
+  const body="--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify({name:FILE,parents:[fid],mimeType:"text/plain"})+"\r\n--"+b+"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+text+"\r\n--"+b+"--";
+  const r=await gf(UP+"?uploadType=multipart&fields=id",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body});
+  fileId=(await r.json()).id}
+function parse(t){try{const o=JSON.parse(t);return o&&Array.isArray(o.items)?o:null}catch(e){return null}}
 function sched(){if(!driveOK)return;clearTimeout(tm);dstat("未同期");tm=setTimeout(push,1500)}
 async function push(){
   if(!driveOK)return;if(busy){again=true;return}
   busy=true;dstat("同期中…");
-  try{await ensure();const old=(await find(FILE,fid,false)).concat(await find(LEG,fid,false));
-    const c=await call("create_file",{title:FILE,parentId:fid,contentMimeType:"text/plain",disableConversionToGoogleType:true,textContent:b64e(JSON.stringify({v:1,savedAt,closing,items:data}))});
-    for(const f of old)if(f.id!==c.id)await call("trash_file",{fileId:f.id});
-    dstat("同期済み")}
+  try{await writeFile(JSON.stringify({v:1,savedAt,closing,items:data}));dstat("同期済み")}
   catch(e){dstat(derr(e))}
   busy=false;if(again){again=false;push()}}
-async function init(){
+async function pull(){
   if(pulling)return;pulling=true;dstat("同期中…");
   $("load").classList.add("show");prog(0,"Googleドライブに接続中…");
-  const guard=setTimeout(()=>$("load").classList.remove("show"),20000);
+  const guard=setTimeout(()=>$("load").classList.remove("show"),30000);
   try{
-    mcp=window.claude?await claude.use("mcp"):null;
-    if(!mcp){dstat("同期なし");return}
     prog(1,"フォルダを確認中…");await ensure();
-    prog(2,"データファイルを検索中…");const fs0=await find(FILE,fid,false),leg=fs0.length?[]:await find(LEG,fid,false),fs=fs0.concat(leg);
+    prog(2,"データファイルを検索中…");const fs=await findFiles();
     let remote=null;
-    if(fs.length){prog(3,"データを読み込み中…");
-      for(const f of fs){const p=await call("read_file_content",{fileId:f.id});remote=parse(p&&p.fileContent);if(remote)break}
-      if(!remote){dstat("同期失敗(タップで再試行)");return}}
-    prog(4,"完了");driveOK=true;
-    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;localSave();initFold();render();if(!fs0.length)await push()}
-    else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)||!fs0.length){if(!savedAt)savedAt=Date.now();localSave();await push()}
-    dstat("同期済み")}
+    if(fs.length){prog(3,"データを読み込み中…");fileId=fs[0].id;
+      remote=parse(await (await gf(API+"/"+fileId+"?alt=media")).text());
+      if(!remote){dstat("ドライブのデータを読み取れません");return}}
+    prog(4,"完了");driveOK=true;let pushed=false;
+    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;localSave();initFold();render()}
+    else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)){if(!savedAt)savedAt=Date.now();localSave();await push();pushed=true}
+    if(!pushed)dstat("同期済み")}
   catch(e){dstat(derr(e))}
   finally{clearTimeout(guard);pulling=false;$("load").classList.remove("show")}}
-$("sync").onclick=null;
+$("sync").onclick=async()=>{
+  if(pulling||busy)return;
+  try{if(!hasTok())await login();await pull()}catch(e){dstat(derr(e))}};
 function sug(id,key){
   const inp=$(id),wrap=inp.parentNode,box=document.createElement("div"),btn=document.createElement("button");
   btn.type="button";btn.className="sgb";btn.textContent="候補";box.className="sgl";
@@ -355,5 +382,5 @@ function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 render();
-dstat("ローカル保存のみ");
+dstat("ドライブ未接続(タップでログイン)");
 </script></body></html>
