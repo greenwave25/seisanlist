@@ -5,6 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="精算リスト">
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
@@ -126,6 +127,16 @@ body{padding-top:var(--hh)}
 #dlg{z-index:35}
 #toast{z-index:36}
 #load{z-index:40}
+#disp{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
+#disp.show{display:flex}
+#disp .form{order:1}
+#disp .bar{order:2;border-top:1px solid var(--line);border-bottom:none}
+:root{--e:0px;--g:calc(var(--e)/6)}
+.row{padding:calc(6px + var(--g)) 10px}
+.name{margin-top:calc(1px + var(--g))}
+.item{margin-top:var(--g)}
+.btns{margin-top:calc(5px + var(--g))}
+.btns button{padding:calc(7px + var(--g)/2) 0}
 #init{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
 #init.show{display:flex}
 #init .form{order:1}
@@ -197,6 +208,10 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <div class="irow"><span class="ik">Googleアカウント</span><span class="iv" id="iv1"></span></div>
 <div class="irow"><span class="ik">締日</span><span class="iv" id="iv2"></span></div>
 </button>
+<button class="sbtn initbtn" id="dispBtn" type="button">
+<div class="itl"><span>画面設定</span><span class="chev">›</span></div>
+<div class="irow"><span class="ik">カードの高さ</span><span class="iv" id="dv1"></span></div>
+</button>
 <button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
 <button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
 <label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
@@ -210,6 +225,13 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <div class="hint" id="rdlast"></div>
 <label class="f">締日（日のみ。空欄で色分けなし）</label><input type="number" id="cl" inputmode="numeric" min="1" max="31" placeholder="例: 15">
 <div class="hint">締日の翌日から次の締日までを1つの期間とし、開始月を「○月支払分」と表示します。</div>
+</div></div>
+<div id="disp"><div class="bar"><button id="dback">戻る</button></div><div class="shead">画面設定</div><div class="form">
+<label class="f">カードの高さ（5段階。1が今の高さです）</label>
+<div class="seg" id="chseg"></div>
+<div class="hint">高さに合わせて、カード内の文字の縦の間隔も同じ割合で広がります。この設定は、この端末だけに保存されます。</div>
+<label class="f">プレビュー</label>
+<div class="row" style="margin:0"><div class="top"><span>2026/11/25(水)</span><span>d払い</span></div><div class="name"><span class="nm">サンプル店舗</span><span class="amt">1,280円</span></div><div class="item">商品名のサンプル</div><div class="btns"><button class="n on" type="button">未精算</button><button class="d" type="button">精算済み</button></div></div>
 </div></div>
 <div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
 <div id="load"><div id="lt">データを読み込み中…</div><div class="pg"><i id="pgi"></i></div></div>
@@ -297,7 +319,7 @@ function bandHtml(L,f){
   flush();return out;
 }
 // 設定・インポート/エクスポート
-$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();fillInit();updInit();$("set").classList.add("show");dstat()};
+$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();fillInit();updInit();updDisp();$("set").classList.add("show");dstat()};
 $("sback").onclick=()=>$("set").classList.remove("show");
 $("cl").onchange=()=>{const v=parseInt($("cl").value,10);
   if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
@@ -447,6 +469,15 @@ function fillInit(){$("acct").value=acct;$("cl").value=closing||"";$("autoR").ch
 $("initBtn").onclick=()=>{fillInit();$("init").classList.add("show")};
 $("iback").onclick=()=>{$("init").classList.remove("show");updInit()};
 $("cl").addEventListener("change",updInit);$("acct").addEventListener("change",updInit);
+const CH_LABEL=["1（標準）","2","3","4","5（最大）"];
+const chLevel=()=>{const v=parseInt(ls("seisan:ch"),10);return v>=0&&v<=4?v:0};
+function applyCh(){document.documentElement.style.setProperty("--e",(chLevel()*16)+"px")}
+function updDisp(){$("dv1").textContent="段階 "+CH_LABEL[chLevel()]}
+$("chseg").innerHTML=[0,1,2,3,4].map(i=>'<label><input type="radio" name="chl" value="'+i+'"><span>'+(i+1)+'</span></label>').join("");
+function fillDisp(){document.querySelector('input[name=chl][value="'+chLevel()+'"]').checked=true}
+$("chseg").onchange=e=>{ls("seisan:ch",e.target.value);applyCh();updDisp()};
+$("dispBtn").onclick=()=>{fillDisp();$("disp").classList.add("show")};
+$("dback").onclick=()=>{$("disp").classList.remove("show");updDisp()};
 let persistState="確認中…";
 async function reqPersist(){
   try{
@@ -483,7 +514,7 @@ function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 loadTok();handleReturn();
-updInit();
+updInit();applyCh();updDisp();
 render();
 startDrive();
 reqPersist();
