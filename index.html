@@ -126,6 +126,18 @@ body{padding-top:var(--hh)}
 #dlg{z-index:35}
 #toast{z-index:36}
 #load{z-index:40}
+#init{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
+#init.show{display:flex}
+#init .form{order:1}
+#init .bar{order:2;border-top:1px solid var(--line);border-bottom:none}
+.initbtn{padding:16px 18px;margin-top:6px}
+.initbtn.warn{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.itl{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;margin-bottom:10px}
+.chev{color:var(--sub);font-size:24px;font-weight:400}
+.irow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--line)}
+.ik{color:var(--sub);font-size:14px;flex:none}
+.iv{font-size:16px;font-weight:600;color:var(--fg);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iv.unset{color:#1c1300;background:var(--acc);border-radius:12px;padding:2px 12px;font-weight:800;flex:none}
 input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;background:#141414;color:var(--fg);border:1px solid var(--line);border-radius:8px;-webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text}
 .bh{display:flex;align-items:center}
 .gs{margin-left:auto;padding:1px 9px;font-size:12px;font-weight:700;color:#111;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.45);border-radius:12px;font-family:inherit}
@@ -180,6 +192,17 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 </div>
 <div id="toast"></div>
 <div id="set"><div class="bar"><button id="sback">戻る</button></div><div class="shead">設定</div><div class="form">
+<button class="sbtn initbtn" id="initBtn" type="button">
+<div class="itl"><span>初期設定</span><span class="chev">›</span></div>
+<div class="irow"><span class="ik">Googleアカウント</span><span class="iv" id="iv1"></span></div>
+<div class="irow"><span class="ik">締日</span><span class="iv" id="iv2"></span></div>
+</button>
+<button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
+<button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
+<label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
+<input type="file" id="file" accept=".json,.dat,.txt,application/json,text/plain" hidden>
+</div></div>
+<div id="init"><div class="bar"><button id="iback">戻る</button></div><div class="shead">初期設定</div><div class="form">
 <label class="f">Googleアカウント（ドライブ連携用のメールアドレス）</label><input type="email" id="acct" placeholder="例: example@gmail.com" autocomplete="off" autocapitalize="off">
 <div class="hint">設定すると、アプリを開いた時に自動でドライブへの接続を試みます。自動で接続できない時は、最初の画面タップで再試行します。それでも接続できない時は、画面上部の表示をタップしてください。</div>
 <label class="f"><input type="checkbox" id="autoR"> 起動時に自動で接続する（画面が一瞬切り替わります）</label>
@@ -187,10 +210,6 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <div class="hint" id="rdlast"></div>
 <label class="f">締日（日のみ。空欄で色分けなし）</label><input type="number" id="cl" inputmode="numeric" min="1" max="31" placeholder="例: 15">
 <div class="hint">締日の翌日から次の締日までを1つの期間とし、開始月を「○月支払分」と表示します。</div>
-<button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
-<button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
-<label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
-<input type="file" id="file" accept=".json,.dat,.txt,application/json,text/plain" hidden>
 </div></div>
 <div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
 <div id="load"><div id="lt">データを読み込み中…</div><div class="pg"><i id="pgi"></i></div></div>
@@ -278,7 +297,7 @@ function bandHtml(L,f){
   flush();return out;
 }
 // 設定・インポート/エクスポート
-$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();$("autoR").checked=autoOn();$("ruri").textContent=REDIRECT_URI;$("rdlast").textContent=rdLast();$("set").classList.add("show");dstat()};
+$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();fillInit();updInit();$("set").classList.add("show");dstat()};
 $("sback").onclick=()=>$("set").classList.remove("show");
 $("cl").onchange=()=>{const v=parseInt($("cl").value,10);
   if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
@@ -419,6 +438,15 @@ function startDrive(){
   if(ls("seisan:rdp")==="1"){ls("seisan:rdp",null);ls("seisan:auto","");ls("seisan:rdlast","Googleの画面から戻れませんでした（リダイレクトURIの設定を確認してください）。自動接続をオフにしました")}
   else if(autoOn()&&(acct||wasConn())&&canAuto()){redirectLogin();return}
   if(acct||wasConn())connect(true,false)}
+function updInit(){
+  const e1=$("iv1"),e2=$("iv2"),u1=!acct,u2=!closing;
+  e1.textContent=u1?"⚠ 未設定":acct;e1.className="iv"+(u1?" unset":"");
+  e2.textContent=u2?"⚠ 未設定":closing+"日";e2.className="iv"+(u2?" unset":"");
+  $("initBtn").className="sbtn initbtn"+((u1||u2)?" warn":"")}
+function fillInit(){$("acct").value=acct;$("cl").value=closing||"";$("autoR").checked=autoOn();$("ruri").textContent=REDIRECT_URI;$("rdlast").textContent=rdLast()}
+$("initBtn").onclick=()=>{fillInit();$("init").classList.add("show")};
+$("iback").onclick=()=>{$("init").classList.remove("show");updInit()};
+$("cl").addEventListener("change",updInit);$("acct").addEventListener("change",updInit);
 let persistState="確認中…";
 async function reqPersist(){
   try{
@@ -455,6 +483,7 @@ function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 loadTok();handleReturn();
+updInit();
 render();
 startDrive();
 reqPersist();
