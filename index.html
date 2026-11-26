@@ -127,6 +127,8 @@ body{padding-top:var(--hh)}
 #dlg{z-index:35}
 #toast{z-index:36}
 #load{z-index:40}
+label.fh{font-weight:800;font-size:17px;color:var(--fg);margin-top:16px}
+label.fh small{font-weight:400;font-size:12px;color:var(--sub);margin-left:6px}
 #disp{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
 #disp.show{display:flex}
 #disp .form{order:1}
@@ -210,7 +212,7 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 </button>
 <button class="sbtn initbtn" id="dispBtn" type="button">
 <div class="itl"><span>画面設定</span><span class="chev">›</span></div>
-<div class="irow"><span class="ik">カードの高さ</span><span class="iv" id="dv1"></span></div>
+<div class="irow"><span class="ik">明細の高さ</span><span class="iv" id="dv1"></span></div>
 </button>
 <button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
 <button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
@@ -218,18 +220,16 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <input type="file" id="file" accept=".json,.dat,.txt,application/json,text/plain" hidden>
 </div></div>
 <div id="init"><div class="bar"><button id="iback">戻る</button></div><div class="shead">初期設定</div><div class="form">
-<label class="f">Googleアカウント（ドライブ連携用のメールアドレス）</label><input type="email" id="acct" placeholder="例: example@gmail.com" autocomplete="off" autocapitalize="off">
-<div class="hint">設定すると、アプリを開いた時に自動でドライブへの接続を試みます。自動で接続できない時は、最初の画面タップで再試行します。それでも接続できない時は、画面上部の表示をタップしてください。</div>
+<label class="f fh">Googleアカウント<small>（ドライブ連携用のメールアドレス）</small></label><input type="email" id="acct" placeholder="例: example@gmail.com" autocomplete="off" autocapitalize="off">
+<div class="hint">※ 初めて使う方は、このメールアドレスを管理者に伝えてください。管理者がGoogle Cloudの「テストユーザー」に追加するまで、ドライブには接続できません。</div>
 <label class="f"><input type="checkbox" id="autoR"> 起動時に自動で接続する（画面が一瞬切り替わります）</label>
-<div class="hint">使う前に、Google Cloudのクライアントの「承認済みのリダイレクトURI」へ、次のURLを追加してください。<br><span id="ruri" style="user-select:text;-webkit-user-select:text;word-break:break-all"></span></div>
 <div class="hint" id="rdlast"></div>
-<label class="f">締日（日のみ。空欄で色分けなし）</label><input type="number" id="cl" inputmode="numeric" min="1" max="31" placeholder="例: 15">
-<div class="hint">締日の翌日から次の締日までを1つの期間とし、開始月を「○月支払分」と表示します。</div>
+<label class="f fh">締日</label><input type="number" id="cl" inputmode="numeric" min="1" max="31" placeholder="例: 15">
 </div></div>
+
 <div id="disp"><div class="bar"><button id="dback">戻る</button></div><div class="shead">画面設定</div><div class="form">
-<label class="f">カードの高さ（5段階。1が今の高さです）</label>
+<label class="f">明細の高さ</label>
 <div class="seg" id="chseg"></div>
-<div class="hint">高さに合わせて、カード内の文字の縦の間隔も同じ割合で広がります。この設定は、この端末だけに保存されます。</div>
 <label class="f">プレビュー</label>
 <div class="row" style="margin:0"><div class="top"><span>2026/11/25(水)</span><span>d払い</span></div><div class="name"><span class="nm">サンプル店舗</span><span class="amt">1,280円</span></div><div class="item">商品名のサンプル</div><div class="btns"><button class="n on" type="button">未精算</button><button class="d" type="button">精算済み</button></div></div>
 </div></div>
@@ -465,7 +465,7 @@ function updInit(){
   e1.textContent=u1?"⚠ 未設定":acct;e1.className="iv"+(u1?" unset":"");
   e2.textContent=u2?"⚠ 未設定":closing+"日";e2.className="iv"+(u2?" unset":"");
   $("initBtn").className="sbtn initbtn"+((u1||u2)?" warn":"")}
-function fillInit(){$("acct").value=acct;$("cl").value=closing||"";$("autoR").checked=autoOn();$("ruri").textContent=REDIRECT_URI;$("rdlast").textContent=rdLast()}
+function fillInit(){$("acct").value=acct;$("cl").value=closing||"";$("autoR").checked=autoOn();$("rdlast").textContent=rdLast()}
 $("initBtn").onclick=()=>{fillInit();$("init").classList.add("show")};
 $("iback").onclick=()=>{$("init").classList.remove("show");updInit()};
 $("cl").addEventListener("change",updInit);$("acct").addEventListener("change",updInit);
