@@ -389,6 +389,7 @@ $("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("se
 const REDIRECT_URI=location.origin+location.pathname.replace(/index\.html$/,"");
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}return null};
 const autoOn=()=>ls("seisan:auto")==="1";
+const canAuto=()=>!(ls("seisan:rdlast")||"").startsWith("失敗")||Date.now()-(+ls("seisan:rdt")||0)>60000;
 const rdLast=()=>{const r=ls("seisan:rdlast");return r?"前回の自動接続: "+r:""};
 function handleReturn(){
   if(!/(^|[#&])(access_token|error)=/.test(location.hash))return;
@@ -412,7 +413,7 @@ function startDrive(){
   dstat("ドライブ未接続(タップでログイン)");
   if(hasTok()){connect(true,false);return}
   if(ls("seisan:rdp")==="1"){ls("seisan:rdp",null);ls("seisan:auto","");ls("seisan:rdlast","Googleの画面から戻れませんでした（リダイレクトURIの設定を確認してください）。自動接続をオフにしました")}
-  else if(autoOn()&&(acct||wasConn())&&Date.now()-(+ls("seisan:rdt")||0)>60000){redirectLogin();return}
+  else if(autoOn()&&(acct||wasConn())&&canAuto()){redirectLogin();return}
   if(acct||wasConn())connect(true,false)}
 let persistState="確認中…";
 async function reqPersist(){
