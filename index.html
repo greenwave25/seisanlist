@@ -3,6 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>精算リスト</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="精算リスト">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
@@ -311,7 +313,7 @@ function login(silent){return new Promise((res,rej)=>{
   cbk=r=>{
     if(!(r&&r.access_token)){rej({code:(r&&r.error)||"login_failed"});return}
     if(google.accounts.oauth2.hasGrantedAllScopes&&!google.accounts.oauth2.hasGrantedAllScopes(r,SCOPE)){rej({code:"scope_denied"});return}
-    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;try{localStorage.setItem("seisan:gl","1")}catch(e){}res()};
+    tok=r.access_token;tokExp=Date.now()+(+r.expires_in||3600)*1000;try{localStorage.setItem("seisan:gl","1")}catch(e){}saveTok();res()};
   ecb=e=>rej({code:(e&&e.type)||"login_failed"});
   const o={prompt:(silent&&acct)?"none":""};if(acct)o.hint=acct;tc.requestAccessToken(o)})}
 function derr(e){const c=e&&e.code;
@@ -323,7 +325,7 @@ async function gf(url,opt){
   if(!hasTok())throw {code:"need_login"};
   const o=Object.assign({},opt);o.headers=Object.assign({Authorization:"Bearer "+tok},(opt&&opt.headers)||{});
   const r=await fetch(url,o);
-  if(r.status===401){tok=null;throw {code:"need_login"}}
+  if(r.status===401){tok=null;ls("seisan:tok",null);throw {code:"need_login"}}
   if(!r.ok)throw {code:"http_"+r.status};
   return r}
 const qs=q=>API+"?spaces=drive&pageSize=10&fields="+encodeURIComponent("files(id,name,createdTime,modifiedTime)")+"&q="+encodeURIComponent(q);
@@ -384,11 +386,13 @@ async function connect(silent,gest){
     else dstat(derr(e))}}
 $("sync").onclick=()=>connect(false,false);
 $("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("seisan:acct",acct)}catch(e){}
-  tok=null;tokExp=0;driveOK=false;fid=null;fileId=null;ens=null;
+  tok=null;tokExp=0;ls("seisan:tok",null);driveOK=false;fid=null;fileId=null;ens=null;
   dstat("ドライブ未接続(タップでログイン)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
 const REDIRECT_URI=location.origin+location.pathname.replace(/index\.html$/,"");
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}return null};
 const autoOn=()=>ls("seisan:auto")==="1";
+const saveTok=()=>ls("seisan:tok",JSON.stringify({t:tok,e:tokExp}));
+const loadTok=()=>{try{const o=JSON.parse(ls("seisan:tok")||"null");if(o&&o.t&&o.e>Date.now()+60000){tok=o.t;tokExp=o.e}else if(o)ls("seisan:tok",null)}catch(e){}};
 const canAuto=()=>!(ls("seisan:rdlast")||"").startsWith("失敗")||Date.now()-(+ls("seisan:rdt")||0)>60000;
 const rdLast=()=>{const r=ls("seisan:rdlast");return r?"前回の自動接続: "+r:""};
 function handleReturn(){
@@ -399,7 +403,7 @@ function handleReturn(){
   if(!st||h.get("state")!==st)return;
   ls("seisan:rds",null);
   if(h.get("access_token")&&/drive\.file/.test(h.get("scope")||"")){
-    tok=h.get("access_token");tokExp=Date.now()+(+h.get("expires_in")||3600)*1000;ls("seisan:gl","1");ls("seisan:rdlast","成功")}
+    tok=h.get("access_token");tokExp=Date.now()+(+h.get("expires_in")||3600)*1000;ls("seisan:gl","1");saveTok();ls("seisan:rdlast","成功")}
   else ls("seisan:rdlast","失敗（"+(h.get("error")||"不明")+"）")}
 function redirectLogin(){
   const st=Math.random().toString(36).slice(2)+Date.now().toString(36);
@@ -450,7 +454,7 @@ let fold=new Set();
 function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=>{const k=per(x.date).k;u[k]=u[k]||!x.done});for(const k in u)if(!u[k])fold.add(+k)}
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
-handleReturn();
+loadTok();handleReturn();
 render();
 startDrive();
 reqPersist();
