@@ -3,13 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>精算リスト</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="精算リスト">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#7fd9a0">
+<meta name="theme-color" content="#000000">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -130,15 +129,20 @@ body{padding-top:var(--hh)}
 #load{z-index:40}
 label.fh{font-weight:800;font-size:17px;color:var(--fg);margin-top:16px}
 :root{--hh:calc(48px + env(safe-area-inset-top,0px))}
-header{background:#7fd9a0;color:#10261a;font-size:19px;border-bottom:1px solid #5fbf84}
-#sync{font-size:13px;color:#14452d;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#sum{font-size:17px;color:#10261a}
-#sab{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#000;z-index:11}
-header{top:env(safe-area-inset-top,0px);height:48px;padding:0 16px;font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","M PLUS Rounded 1c",ui-rounded,-apple-system,sans-serif}
-#sync{font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif}
-html[data-th=line] header{background:#000;color:#f2f2f2;border-bottom:5px solid #7fd9a0}
-html[data-th=line] #sum{color:#fff}
-html[data-th=line] #sync{color:var(--sub)}
+header{background:#000;color:#f2f2f2;font-size:19px;border-bottom:1px solid var(--line)}
+#sync{font-size:13px;color:var(--sub);line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#sum{font-size:15px;color:#fff}
+.pbox{border:1px solid var(--line);border-radius:8px;background:#161616;padding:14px 16px;margin-top:10px}
+.pbox .itl{font-size:17px;margin-bottom:6px}
+.prow{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.35}
+.prow input{width:84px;flex:none;text-align:center}
+.pbox.off .prow{opacity:.45}
+.sw{position:relative;display:inline-block;width:52px;height:30px;flex:none}
+.sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;z-index:2}
+.sw .knob{position:absolute;inset:0;background:#3a3a3e;border-radius:15px;transition:.2s}
+.sw .knob::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+.knob{background:var(--ok)}
+.sw input:checked+.knob::after{transform:translateX(22px)}
 label.fh small{font-weight:400;font-size:12px;color:var(--sub);margin-left:6px}
 #disp{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
 #disp.show{display:flex}
@@ -198,7 +202,6 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 .row .top>span:last-child{color:var(--fg)}
 .row.done .top>span:last-child{color:#999}
 </style></head><body>
-<div id="sab"></div>
 <header><span>精算リスト</span><small id="sync"></small><small id="sum"></small></header>
 <div id="list"></div>
 <nav><span class="sp"></span><button class="ib big" id="add" aria-label="新規登録"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10"/></svg></button><button class="ib" id="gear" aria-label="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10.23 4.61 L10.67 2.09 L13.33 2.09 L13.77 4.61 L15.97 5.52 L18.07 4.05 L19.95 5.93 L18.48 8.03 L19.39 10.23 L21.91 10.67 L21.91 13.33 L19.39 13.77 L18.48 15.97 L19.95 18.07 L18.07 19.95 L15.97 18.48 L13.77 19.39 L13.33 21.91 L10.67 21.91 L10.23 19.39 L8.03 18.48 L5.93 19.95 L4.05 18.07 L5.52 15.97 L4.61 13.77 L2.09 13.33 L2.09 10.67 L4.61 10.23 L5.52 8.03 L4.05 5.93 L5.93 4.05 L8.03 5.52Z"/></svg></button></nav>
@@ -224,8 +227,11 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <button class="sbtn initbtn" id="dispBtn" type="button">
 <div class="itl"><span>画面設定</span><span class="chev">›</span></div>
 <div class="irow"><span class="ik">明細の高さ</span><span class="iv" id="dv1"></span></div>
-<div class="irow"><span class="ik">タイトル部</span><span class="iv" id="dv2"></span></div>
 </button>
+<div class="pbox" id="pbox">
+<div class="itl"><span>精算済みデータの自動削除</span><label class="sw"><input type="checkbox" id="pgOn"><span class="knob"></span></label></div>
+<div class="prow"><input type="number" id="pgM" inputmode="numeric" min="13"><span>カ月以前の精算済みデータを自動で削除する</span></div>
+</div>
 <button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
 <button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
 <label class="f">保存データの保護</label><div class="hint" id="pst">確認中…</div>
@@ -244,19 +250,27 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <div class="seg" id="chseg"></div>
 <label class="f">プレビュー</label>
 <div class="row" style="margin:0"><div class="top"><span>2026/11/25(水)</span><span>d払い</span></div><div class="name"><span class="nm">サンプル店舗</span><span class="amt">1,280円</span></div><div class="item">商品名のサンプル</div><div class="btns"><button class="n on" type="button">未精算</button><button class="d" type="button">精算済み</button></div></div>
-<label class="f fh" style="margin-top:22px">タイトル部</label>
-<div class="seg" id="thseg"></div>
 </div></div>
 <div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
 <div id="load"><div id="lt">データを読み込み中…</div><div class="pg"><i id="pgi"></i></div></div>
 <script>
 const PAYS=["d払い","ID","dカード","現金","その他"],KEY="seisan:v1";
 let data=[],cur=null,dirty=false;
-let closing=0,savedAt=0;
+let closing=0,savedAt=0,purgeOn=true,purgeMonths=15;
 try{const s0=JSON.parse(localStorage.getItem("seisan:v2")||"null");
- if(s0){data=s0.items||[];closing=s0.closing||0;savedAt=s0.savedAt||0}else data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}
+ if(s0){data=s0.items||[];closing=s0.closing||0;savedAt=s0.savedAt||0;readPurge(s0)}else data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}
 const $=id=>document.getElementById(id);
-const localSave=()=>{try{localStorage.setItem("seisan:v2",JSON.stringify({v:1,savedAt,closing,items:data}))}catch(e){}};
+const pack=()=>({v:1,savedAt,closing,items:data,purge:{on:purgeOn,months:purgeMonths}});
+function readPurge(o){if(o&&o.purge){purgeOn=o.purge.on!==false;const m=parseInt(o.purge.months,10);purgeMonths=m>=13?m:15}}
+function purgeOld(){
+  if(!purgeOn)return 0;
+  const t=new Date(),c=new Date(t.getFullYear(),t.getMonth()-purgeMonths,1),last=new Date(c.getFullYear(),c.getMonth()+1,0).getDate();
+  c.setDate(Math.min(t.getDate(),last));
+  const cs=c.getFullYear()+"-"+String(c.getMonth()+1).padStart(2,"0")+"-"+String(c.getDate()).padStart(2,"0");
+  const keep=data.filter(x=>!(x.done&&x.date<=cs)),n=data.length-keep.length;
+  if(n>0){data=keep;save();toast("精算済みデータを"+n+"件削除しました")}
+  return n}
+const localSave=()=>{try{localStorage.setItem("seisan:v2",JSON.stringify(pack()))}catch(e){}};
 const save=()=>{savedAt=Date.now();localSave();sched()};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
@@ -333,14 +347,14 @@ function bandHtml(L,f){
   flush();return out;
 }
 // 設定・インポート/エクスポート
-$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();fillInit();updInit();updDisp();$("set").classList.add("show");dstat()};
+$("gear").onclick=()=>{$("cl").value=closing||"";$("acct").value=acct;$("pst").textContent=persistState;reqPersist();fillInit();updInit();updDisp();updPurge();$("set").classList.add("show");dstat()};
 $("sback").onclick=()=>$("set").classList.remove("show");
 $("cl").onchange=()=>{const v=parseInt($("cl").value,10);
   if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
   closing=isNaN(v)?0:v;initFold();save();render()};
 function dlFile(text,name){const b=new Blob([text],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $("exp").onclick=async()=>{
-  const text=JSON.stringify({v:1,savedAt,closing,items:data}),name="精算リスト_"+today()+".json";
+  const text=JSON.stringify(pack()),name="精算リスト_"+today()+".json";
   try{
     if(matchMedia("(pointer:coarse)").matches&&navigator.share&&navigator.canShare){
       const f=new File([text],name,{type:"application/json"});
@@ -356,6 +370,7 @@ $("file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)r
     if(!await ask("現在のデータを完全に置き換えます。よろしいですか？"))return;
     data=items.map((x,i)=>({id:x.id||Date.now()+i,date:String(x.date||today()),shop:x.shop||"",item:x.item||"",amt:+x.amt||0,pay:x.pay||"その他",part:!!x.part,done:!!x.done}));
     if(!Array.isArray(o)&&o.closing!==undefined)closing=+o.closing||0;
+    if(!Array.isArray(o))readPurge(o);
     initFold();save();render();$("cl").value=closing||"";toast("インポートしました")}
   catch(err){toast("読み込めないファイルです")}};
 // Googleドライブ同期（マイドライブ / WebApp / seisanlist / 精算データ.dat）
@@ -414,7 +429,7 @@ function sched(){if(!driveOK)return;clearTimeout(tm);dstat("未同期");tm=setTi
 async function push(){
   if(!driveOK)return;if(busy){again=true;return}
   busy=true;dstat("同期中…");
-  try{await writeFile(JSON.stringify({v:1,savedAt,closing,items:data}));dstat("同期済み")}
+  try{await writeFile(JSON.stringify(pack()));dstat("同期済み")}
   catch(e){dstat(derr(e));if(e&&e.code==="need_login")arm()}
   busy=false;if(again){again=false;push()}}
 async function pull(){
@@ -429,7 +444,7 @@ async function pull(){
       remote=parse(await (await gf(API+"/"+fileId+"?alt=media")).text());
       if(!remote){dstat("データ読取不可");return}}
     prog(4,"完了");driveOK=true;let pushed=false;
-    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;localSave();initFold();render()}
+    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;readPurge(remote);localSave();purgeOld();initFold();render()}
     else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)){if(!savedAt)savedAt=Date.now();localSave();await push();pushed=true}
     if(!pushed)dstat("同期済み")}
   catch(e){dstat(derr(e))}
@@ -493,13 +508,14 @@ $("cl").addEventListener("change",updInit);$("acct").addEventListener("change",u
 const CH_LABEL=["1（標準）","2","3","4","5（最大）"];
 const chLevel=()=>{const v=parseInt(ls("seisan:ch"),10);return v>=0&&v<=4?v:0};
 function applyCh(){document.documentElement.style.setProperty("--e",(chLevel()*16)+"px")}
-const thLine=()=>ls("seisan:th")==="line";
-function applyTh(){document.documentElement.dataset.th=thLine()?"line":""}
-function updDisp(){$("dv1").textContent="段階 "+CH_LABEL[chLevel()];$("dv2").textContent=thLine()?"黒＋緑の線":"緑背景"}
-$("thseg").innerHTML=[["","緑背景"],["line","黒＋緑の線"]].map(a=>'<label><input type="radio" name="thr" value="'+a[0]+'"><span>'+a[1]+'</span></label>').join("");
-$("thseg").onchange=e=>{ls("seisan:th",e.target.value);applyTh();updDisp()};
+function updPurge(){$("pgOn").checked=purgeOn;$("pgM").value=purgeMonths;$("pbox").classList.toggle("off",!purgeOn)}
+$("pgOn").onchange=()=>{purgeOn=$("pgOn").checked;updPurge();save()};
+$("pgM").onchange=()=>{const t=$("pgM").value.trim(),v=Number(t);
+  if(t===""||!Number.isInteger(v)||v<13){toast("13以上を入力してください");$("pgM").value=purgeMonths;return}
+  purgeMonths=v;save()};
+function updDisp(){$("dv1").textContent="段階 "+CH_LABEL[chLevel()]}
 $("chseg").innerHTML=[0,1,2,3,4].map(i=>'<label><input type="radio" name="chl" value="'+i+'"><span>'+(i+1)+'</span></label>').join("");
-function fillDisp(){document.querySelector('input[name=chl][value="'+chLevel()+'"]').checked=true;document.querySelector('input[name=thr][value="'+(thLine()?"line":"")+'"]').checked=true}
+function fillDisp(){document.querySelector('input[name=chl][value="'+chLevel()+'"]').checked=true}
 $("chseg").onchange=e=>{ls("seisan:ch",e.target.value);applyCh();updDisp()};
 $("dispBtn").onclick=()=>{fillDisp();$("disp").classList.add("show")};
 $("dback").onclick=()=>{$("disp").classList.remove("show");updDisp()};
@@ -539,7 +555,8 @@ function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 loadTok();handleReturn();
-updInit();applyCh();applyTh();updDisp();
+updInit();applyCh();updDisp();
+purgeOld();
 render();
 startDrive();
 reqPersist();
