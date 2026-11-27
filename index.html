@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#7fd9a0">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -128,6 +128,10 @@ body{padding-top:var(--hh)}
 #toast{z-index:36}
 #load{z-index:40}
 label.fh{font-weight:800;font-size:17px;color:var(--fg);margin-top:16px}
+:root{--hh:calc(48px + env(safe-area-inset-top,0px))}
+header{background:#7fd9a0;color:#10261a;font-size:19px;border-bottom:1px solid #5fbf84}
+#sync{font-size:13px;color:#14452d;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#sum{font-size:17px;color:#10261a}
 label.fh small{font-weight:400;font-size:12px;color:var(--sub);margin-left:6px}
 #disp{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
 #disp.show{display:flex}
@@ -157,7 +161,6 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 .gs:active{background:rgba(0,0,0,.3)}
 .gt{margin-left:6px;padding:1px 10px;font-size:14px;line-height:18px;font-weight:700;color:#111;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.45);border-radius:12px;font-family:inherit}
 .gt:active{background:rgba(0,0,0,.3)}
-#sum{font-size:15px;color:#fff}
 .row.done .tag{color:#a39239;border-color:#a39239}
 .row .top>span:last-child{font-size:14px;font-weight:600}
 .nm{font-size:17px}
@@ -228,7 +231,7 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 </div></div>
 
 <div id="disp"><div class="bar"><button id="dback">戻る</button></div><div class="shead">画面設定</div><div class="form">
-<label class="f">明細の高さ</label>
+<label class="f fh">明細の高さ</label>
 <div class="seg" id="chseg"></div>
 <label class="f">プレビュー</label>
 <div class="row" style="margin:0"><div class="top"><span>2026/11/25(水)</span><span>d払い</span></div><div class="name"><span class="nm">サンプル店舗</span><span class="amt">1,280円</span></div><div class="item">商品名のサンプル</div><div class="btns"><button class="n on" type="button">未精算</button><button class="d" type="button">精算済み</button></div></div>
@@ -324,10 +327,17 @@ $("sback").onclick=()=>$("set").classList.remove("show");
 $("cl").onchange=()=>{const v=parseInt($("cl").value,10);
   if($("cl").value!==""&&!(v>=1&&v<=31)){toast("締日は1〜31で入力してください");$("cl").value=closing||"";return}
   closing=isNaN(v)?0:v;initFold();save();render()};
-$("exp").onclick=()=>{
-  try{const b=new Blob([JSON.stringify({v:1,savedAt,closing,items:data})],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
-    a.href=u;a.download="精算リスト_"+today()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);toast("エクスポートしました")}
-  catch(e){toast("エクスポートに失敗しました")}};
+function dlFile(text,name){const b=new Blob([text],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+$("exp").onclick=async()=>{
+  const text=JSON.stringify({v:1,savedAt,closing,items:data}),name="精算リスト_"+today()+".json";
+  try{
+    if(matchMedia("(pointer:coarse)").matches&&navigator.share&&navigator.canShare){
+      const f=new File([text],name,{type:"application/json"});
+      if(navigator.canShare({files:[f]})){await navigator.share({files:[f]});toast("エクスポートしました");return}}
+    dlFile(text,name);toast("エクスポートしました")}
+  catch(e){
+    if(e&&e.name==="AbortError")return;
+    try{dlFile(text,name);toast("エクスポートしました")}catch(e2){toast("エクスポートに失敗しました")}}};
 $("imp").onclick=()=>$("file").click();
 $("file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   try{const o=JSON.parse(await f.text());const items=Array.isArray(o)?o:o.items;
@@ -358,10 +368,10 @@ function login(silent){return new Promise((res,rej)=>{
   ecb=e=>rej({code:(e&&e.type)||"login_failed"});
   const o={prompt:(silent&&acct)?"none":""};if(acct)o.hint=acct;tc.requestAccessToken(o)})}
 function derr(e){const c=e&&e.code;
-  return c==="need_login"?"再ログイン(タップ)":c==="gis_unavailable"?"Googleログインを読み込めません":
-  c==="scope_denied"?"ドライブへのアクセスが許可されていません(タップ)":
-  (c==="popup_closed"||c==="popup_failed_to_open"||c==="access_denied"||c==="login_failed")?"ログインできませんでした(タップで再試行)":
-  "同期失敗(タップで再試行)"}
+  return c==="need_login"?"再ログイン(タップ)":c==="gis_unavailable"?"ログイン読込失敗":
+  c==="scope_denied"?"未許可(タップ)":
+  (c==="popup_closed"||c==="popup_failed_to_open"||c==="access_denied"||c==="login_failed")?"ログイン失敗(タップ)":
+  "同期失敗(タップ)"}
 async function gf(url,opt){
   if(!hasTok())throw {code:"need_login"};
   const o=Object.assign({},opt);o.headers=Object.assign({Authorization:"Bearer "+tok},(opt&&opt.headers)||{});
@@ -406,7 +416,7 @@ async function pull(){
     let remote=null;
     if(fs.length){prog(3,"データを読み込み中…");fileId=fs[0].id;
       remote=parse(await (await gf(API+"/"+fileId+"?alt=media")).text());
-      if(!remote){dstat("ドライブのデータを読み取れません");return}}
+      if(!remote){dstat("データ読取不可");return}}
     prog(4,"完了");driveOK=true;let pushed=false;
     if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;localSave();initFold();render()}
     else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)){if(!savedAt)savedAt=Date.now();localSave();await push();pushed=true}
@@ -423,12 +433,12 @@ async function connect(silent,gest){
   if(pulling||busy)return;
   try{if(!hasTok())await login(silent);await pull();await fillAcct()}
   catch(e){
-    if(silent){dstat(driveOK?"再ログイン(タップ)":"ドライブ未接続(タップでログイン)");if(!gest)arm()}
+    if(silent){dstat(driveOK?"再ログイン(タップ)":"未接続(タップ)");if(!gest)arm()}
     else dstat(derr(e))}}
 $("sync").onclick=()=>connect(false,false);
 $("acct").onchange=()=>{acct=$("acct").value.trim();try{localStorage.setItem("seisan:acct",acct)}catch(e){}
   tok=null;tokExp=0;ls("seisan:tok",null);driveOK=false;fid=null;fileId=null;ens=null;
-  dstat("ドライブ未接続(タップでログイン)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
+  dstat("未接続(タップ)");if(acct)arm();toast(acct?"アカウントを設定しました":"アカウントを解除しました")};
 const REDIRECT_URI=location.origin+location.pathname.replace(/index\.html$/,"");
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}return null};
 const autoOn=()=>ls("seisan:auto")==="1";
@@ -455,7 +465,7 @@ function redirectLogin(){
   location.replace("https://accounts.google.com/o/oauth2/v2/auth?"+q.toString())}
 $("autoR").onchange=()=>{ls("seisan:auto",$("autoR").checked?"1":"");if($("autoR").checked){ls("seisan:rdp",null);ls("seisan:rdt",null)}toast($("autoR").checked?"次に開いた時から自動接続します":"自動接続をやめました")};
 function startDrive(){
-  dstat("ドライブ未接続(タップでログイン)");
+  dstat("未接続(タップ)");
   if(hasTok()){connect(true,false);return}
   if(ls("seisan:rdp")==="1"){ls("seisan:rdp",null);ls("seisan:auto","");ls("seisan:rdlast","Googleの画面から戻れませんでした（リダイレクトURIの設定を確認してください）。自動接続をオフにしました")}
   else if(autoOn()&&(acct||wasConn())&&canAuto()){redirectLogin();return}
