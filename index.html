@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>精算リスト</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%92%B4%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="精算リスト">
 <link rel="manifest" href="manifest.json">
@@ -132,6 +133,12 @@ label.fh{font-weight:800;font-size:17px;color:var(--fg);margin-top:16px}
 header{background:#7fd9a0;color:#10261a;font-size:19px;border-bottom:1px solid #5fbf84}
 #sync{font-size:13px;color:#14452d;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #sum{font-size:17px;color:#10261a}
+#sab{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#000;z-index:11}
+header{top:env(safe-area-inset-top,0px);height:48px;padding:0 16px;font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","M PLUS Rounded 1c",ui-rounded,-apple-system,sans-serif}
+#sync{font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif}
+html[data-th=line] header{background:#000;color:#f2f2f2;border-bottom:5px solid #7fd9a0}
+html[data-th=line] #sum{color:#fff}
+html[data-th=line] #sync{color:var(--sub)}
 label.fh small{font-weight:400;font-size:12px;color:var(--sub);margin-left:6px}
 #disp{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:25}
 #disp.show{display:flex}
@@ -191,6 +198,7 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 .row .top>span:last-child{color:var(--fg)}
 .row.done .top>span:last-child{color:#999}
 </style></head><body>
+<div id="sab"></div>
 <header><span>精算リスト</span><small id="sync"></small><small id="sum"></small></header>
 <div id="list"></div>
 <nav><span class="sp"></span><button class="ib big" id="add" aria-label="新規登録"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10"/></svg></button><button class="ib" id="gear" aria-label="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10.23 4.61 L10.67 2.09 L13.33 2.09 L13.77 4.61 L15.97 5.52 L18.07 4.05 L19.95 5.93 L18.48 8.03 L19.39 10.23 L21.91 10.67 L21.91 13.33 L19.39 13.77 L18.48 15.97 L19.95 18.07 L18.07 19.95 L15.97 18.48 L13.77 19.39 L13.33 21.91 L10.67 21.91 L10.23 19.39 L8.03 18.48 L5.93 19.95 L4.05 18.07 L5.52 15.97 L4.61 13.77 L2.09 13.33 L2.09 10.67 L4.61 10.23 L5.52 8.03 L4.05 5.93 L5.93 4.05 L8.03 5.52Z"/></svg></button></nav>
@@ -216,6 +224,7 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <button class="sbtn initbtn" id="dispBtn" type="button">
 <div class="itl"><span>画面設定</span><span class="chev">›</span></div>
 <div class="irow"><span class="ik">明細の高さ</span><span class="iv" id="dv1"></span></div>
+<div class="irow"><span class="ik">タイトル部</span><span class="iv" id="dv2"></span></div>
 </button>
 <button class="sbtn" id="imp">インポート<small>ファイルから精算データを取り込み、現在のデータをすべて置き換えます</small></button>
 <button class="sbtn" id="exp">エクスポート<small>精算データをファイルに書き出します</small></button>
@@ -235,6 +244,8 @@ input[type=email]{width:100%;padding:8px 10px;height:40px;font-size:16px;backgro
 <div class="seg" id="chseg"></div>
 <label class="f">プレビュー</label>
 <div class="row" style="margin:0"><div class="top"><span>2026/11/25(水)</span><span>d払い</span></div><div class="name"><span class="nm">サンプル店舗</span><span class="amt">1,280円</span></div><div class="item">商品名のサンプル</div><div class="btns"><button class="n on" type="button">未精算</button><button class="d" type="button">精算済み</button></div></div>
+<label class="f fh" style="margin-top:22px">タイトル部</label>
+<div class="seg" id="thseg"></div>
 </div></div>
 <div id="dlg"><div class="dbox"><div id="dm"></div><div class="dbtn"><button id="dn">キャンセル</button><button id="dy">はい</button></div></div></div>
 <div id="load"><div id="lt">データを読み込み中…</div><div class="pg"><i id="pgi"></i></div></div>
@@ -482,9 +493,13 @@ $("cl").addEventListener("change",updInit);$("acct").addEventListener("change",u
 const CH_LABEL=["1（標準）","2","3","4","5（最大）"];
 const chLevel=()=>{const v=parseInt(ls("seisan:ch"),10);return v>=0&&v<=4?v:0};
 function applyCh(){document.documentElement.style.setProperty("--e",(chLevel()*16)+"px")}
-function updDisp(){$("dv1").textContent="段階 "+CH_LABEL[chLevel()]}
+const thLine=()=>ls("seisan:th")==="line";
+function applyTh(){document.documentElement.dataset.th=thLine()?"line":""}
+function updDisp(){$("dv1").textContent="段階 "+CH_LABEL[chLevel()];$("dv2").textContent=thLine()?"黒＋緑の線":"緑背景"}
+$("thseg").innerHTML=[["","緑背景"],["line","黒＋緑の線"]].map(a=>'<label><input type="radio" name="thr" value="'+a[0]+'"><span>'+a[1]+'</span></label>').join("");
+$("thseg").onchange=e=>{ls("seisan:th",e.target.value);applyTh();updDisp()};
 $("chseg").innerHTML=[0,1,2,3,4].map(i=>'<label><input type="radio" name="chl" value="'+i+'"><span>'+(i+1)+'</span></label>').join("");
-function fillDisp(){document.querySelector('input[name=chl][value="'+chLevel()+'"]').checked=true}
+function fillDisp(){document.querySelector('input[name=chl][value="'+chLevel()+'"]').checked=true;document.querySelector('input[name=thr][value="'+(thLine()?"line":"")+'"]').checked=true}
 $("chseg").onchange=e=>{ls("seisan:ch",e.target.value);applyCh();updDisp()};
 $("dispBtn").onclick=()=>{fillDisp();$("disp").classList.add("show")};
 $("dback").onclick=()=>{$("disp").classList.remove("show");updDisp()};
@@ -524,7 +539,7 @@ function initFold(){fold=new Set();if(!closing)return;const u={};data.forEach(x=
 initFold();
 list.addEventListener("click",e=>{const g=e.target.closest(".gs");if(g){const k=g.dataset.k;gs[k]=gs[k]==="d"?"a":"d";try{localStorage.setItem("seisan:gs",JSON.stringify(gs))}catch(x){}render();return}const h=e.target.closest(".bh");if(!h)return;const k=+h.dataset.k;fold.has(k)?fold.delete(k):fold.add(k);render()});
 loadTok();handleReturn();
-updInit();applyCh();updDisp();
+updInit();applyCh();applyTh();updDisp();
 render();
 startDrive();
 reqPersist();
