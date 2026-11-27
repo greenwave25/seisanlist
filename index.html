@@ -125,7 +125,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:10;box-sizing:border-box;heig
 body{padding-top:var(--hh)}
 #edit,#set{z-index:20}
 #dlg{z-index:35}
-#toast{z-index:36}
+#toast{z-index:50}
 #load{z-index:40}
 label.fh{font-weight:800;font-size:17px;color:var(--fg);margin-top:16px}
 :root{--hh:calc(48px + env(safe-area-inset-top,0px))}
@@ -268,13 +268,14 @@ function purgeOld(){
   c.setDate(Math.min(t.getDate(),last));
   const cs=c.getFullYear()+"-"+String(c.getMonth()+1).padStart(2,"0")+"-"+String(c.getDate()).padStart(2,"0");
   const keep=data.filter(x=>!(x.done&&x.date<=cs)),n=data.length-keep.length;
-  if(n>0){data=keep;save();toast("精算済みデータを"+n+"件削除しました")}
+  if(n>0){data=keep;save();ls("seisan:note",String((+ls("seisan:note")||0)+n))}
   return n}
+function showNote(){const n=+ls("seisan:note")||0;if(n>0){ls("seisan:note",null);toast("精算済みデータを"+n+"件削除しました",4500)}}
 const localSave=()=>{try{localStorage.setItem("seisan:v2",JSON.stringify(pack()))}catch(e){}};
 const save=()=>{savedAt=Date.now();localSave();sched()};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
-function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),1400)}
+function toast(t,ms){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),ms||1400)}
 function render(){
   const kk=x=>{const p=per(x.date);return p?p.k:0};const sgn=x=>gs[kk(x)]==="d"?-1:1;const L=[...data].sort((a,b)=>(kk(b)-kk(a))||sgn(a)*(a.date.localeCompare(b.date)||a.id-b.id));
   const un=data.filter(x=>!x.done).reduce((s,x)=>s+x.amt,0);
@@ -379,7 +380,7 @@ const SCOPE="https://www.googleapis.com/auth/drive.file";
 const DIRS=["WebApp","seisanlist"],FILE="精算データ.dat";
 const API="https://www.googleapis.com/drive/v3/files",UP="https://www.googleapis.com/upload/drive/v3/files";
 let acct="";try{acct=localStorage.getItem("seisan:acct")||""}catch(e){}
-let tc=null,cbk=null,ecb=null,tok=null,tokExp=0,fid=null,fileId=null,ens=null,driveOK=false,ds="同期なし",busy=false,again=false,tm=null,pulling=false;
+let redirecting=false,tc=null,cbk=null,ecb=null,tok=null,tokExp=0,fid=null,fileId=null,ens=null,driveOK=false,ds="同期なし",busy=false,again=false,tm=null,pulling=false;
 function dstat(t){if(t)ds=t;$("sync").textContent=ds}
 const PG=[8,35,60,90,100];
 function prog(n,t){const q=PG[n];$("pgi").style.width=q+"%";$("lt").textContent=t+" "+q+"%"}
@@ -444,7 +445,7 @@ async function pull(){
       remote=parse(await (await gf(API+"/"+fileId+"?alt=media")).text());
       if(!remote){dstat("データ読取不可");return}}
     prog(4,"完了");driveOK=true;let pushed=false;
-    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;readPurge(remote);localSave();purgeOld();initFold();render()}
+    if(remote&&remote.savedAt>savedAt){data=remote.items;closing=remote.closing||0;savedAt=remote.savedAt;readPurge(remote);localSave();purgeOld();showNote();initFold();render()}
     else if(!remote||remote.savedAt<savedAt||(data.length&&!remote.savedAt)){if(!savedAt)savedAt=Date.now();localSave();await push();pushed=true}
     if(!pushed)dstat("同期済み")}
   catch(e){dstat(derr(e))}
@@ -483,6 +484,7 @@ function handleReturn(){
     tok=h.get("access_token");tokExp=Date.now()+(+h.get("expires_in")||3600)*1000;ls("seisan:gl","1");saveTok();ls("seisan:rdlast","成功")}
   else ls("seisan:rdlast","失敗（"+(h.get("error")||"不明")+"）")}
 function redirectLogin(){
+  redirecting=true;
   const st=Math.random().toString(36).slice(2)+Date.now().toString(36);
   ls("seisan:rds",st);ls("seisan:rdt",String(Date.now()));ls("seisan:rdp","1");
   const q=new URLSearchParams({client_id:CLIENT_ID,redirect_uri:REDIRECT_URI,response_type:"token",scope:SCOPE,prompt:"none",state:st,include_granted_scopes:"true"});
@@ -559,5 +561,6 @@ updInit();applyCh();updDisp();
 purgeOld();
 render();
 startDrive();
+if(!redirecting)showNote();
 reqPersist();
 </script></body></html>
